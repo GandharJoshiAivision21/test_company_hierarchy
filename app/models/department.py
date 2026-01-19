@@ -244,7 +244,7 @@ class Department(Document):
     created_by: Optional[PydanticObjectId] = None
     updated_by: Optional[PydanticObjectId] = None
     # ==================== VALIDATORS ====================
-    @field_validator("type")
+    @field_validator("code")
     @classmethod
     def normalize_code(cls, v):
         """Uppercase and trim"""
