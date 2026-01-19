@@ -3,6 +3,8 @@ from pydantic import Field, validator
 from datetime import datetime
 from typing import Optional, List
 from bson import ObjectId
+from beanie import PydanticObjectId
+from pydantic import field_validator
 import re
 
 class Branch(Document):
@@ -24,13 +26,13 @@ class Branch(Document):
     # Unique within company
     
     # ==================== COMPANY LINKAGE ====================
-    company_id: ObjectId = Field(...)
+    company_id: PydanticObjectId = Field(...)
     # Which company this branch belongs to
     # Required - branches are company-specific
     # Links to Company._id
     
     # ==================== HIERARCHY ====================
-    parent_branch_id: Optional[ObjectId] = None
+    parent_branch_id: Optional[PydanticObjectId] = None
     # Reference to immediate parent branch
     # Null for top-level branches (Regional HQ, Country Office)
     # Example: "Mumbai - Andheri" parent is "Mumbai Region"
@@ -51,7 +53,7 @@ class Branch(Document):
     # Controls UI: folder icon vs file icon
     # Example: "India Region" (True) vs "Pune Office" (False)
     
-    root_id: Optional[ObjectId] = None
+    root_id: Optional[PydanticObjectId] = None
     # Reference to top-most ancestor branch
     # Points to self if IS the root
     # Enables fast "all branches in region" queries
@@ -117,17 +119,17 @@ class Branch(Document):
     # Branch-specific website/page
     
     # ==================== LEADERSHIP ====================
-    branch_manager_id: Optional[ObjectId] = None
+    branch_manager_id: Optional[PydanticObjectId] = None
     # Person in charge of this location
     # Links to Employee._id
     # Example: "Site Manager", "Branch Head"
     
-    admin_contact_id: Optional[ObjectId] = None
+    admin_contact_id: Optional[PydanticObjectId] = None
     # Administrative contact person
     # Links to Employee._id
     # Example: Office manager, receptionist
     
-    hr_contact_id: Optional[ObjectId] = None
+    hr_contact_id: Optional[PydanticObjectId] = None
     # HR representative at this location
     # Links to Employee._id
     
@@ -263,28 +265,31 @@ class Branch(Document):
     # ==================== SOFT DELETE ====================
     is_deleted: bool = Field(default=False)
     deleted_at: Optional[datetime] = None
-    deleted_by: Optional[ObjectId] = None
+    deleted_by: Optional[PydanticObjectId] = None
     
     # ==================== AUDIT ====================
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
-    created_by: Optional[ObjectId] = None
-    updated_by: Optional[ObjectId] = None
+    created_by: Optional[PydanticObjectId] = None
+    updated_by: Optional[PydanticObjectId] = None
     
     # ==================== VALIDATORS ====================
-    @validator('code')
+    @field_validator("code")
+    @classmethod
     def normalize_code(cls, v):
         """Uppercase and trim"""
         return v.upper().strip()
     
-    @validator('email')
+    @field_validator("email")
+    @classmethod
     def normalize_email(cls, v):
         """Lowercase and trim"""
         if v:
             return v.lower().strip()
         return v
     
-    @validator('type')
+    @field_validator("type")
+    @classmethod
     def validate_type(cls, v):
         allowed = ['headquarters', 'regional_office', 'office', 'branch', 
                    'warehouse', 'factory', 'store', 'remote']
@@ -292,14 +297,16 @@ class Branch(Document):
             raise ValueError(f'type must be one of {allowed}')
         return v
     
-    @validator('status')
+    @field_validator("satus")
+    @classmethod
     def validate_status(cls, v):
         allowed = ['active', 'inactive', 'under_construction', 'closed', 'planned']
         if v not in allowed:
             raise ValueError(f'status must be one of {allowed}')
         return v
     
-    @validator('materialized_path')
+    @field_validator("materialized_path")
+    @classmethod
     def validate_materialized_path(cls, v):
         if v is None:
             return v
@@ -308,7 +315,8 @@ class Branch(Document):
             raise ValueError('materialized_path must match pattern: 001.002.003')
         return v
     
-    @validator('security_level')
+    @field_validator("security_level")
+    @classmethod
     def validate_security_level(cls, v):
         if v is not None:
             allowed = ['low', 'medium', 'high', 'critical']

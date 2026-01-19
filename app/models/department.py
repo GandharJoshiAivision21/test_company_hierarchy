@@ -60,6 +60,8 @@ from pydantic import Field, validator
 from datetime import datetime
 from typing import Optional, List
 from bson import ObjectId
+from beanie import PydanticObjectId
+from pydantic import field_validator
 import re
 
 class Department(Document):
@@ -81,13 +83,13 @@ class Department(Document):
     # Unique within company
     
     # ==================== COMPANY LINKAGE ====================
-    company_id: ObjectId = Field(...)
+    company_id: PydanticObjectId = Field(...)
     # Which company this department belongs to
     # Required - departments are company-specific
     # Links to Company._id
     
     # ==================== HIERARCHY ====================
-    parent_department_id: Optional[ObjectId] = None
+    parent_department_id: Optional[PydanticObjectId] = None
     # Reference to immediate parent department
     # Null for top-level departments (e.g., "Engineering", "Sales")
     
@@ -106,7 +108,7 @@ class Department(Document):
     # Controls UI: folder icon vs file icon
     # Example: "Engineering" (True) vs "DevOps Team" (False)
     
-    root_id: Optional[ObjectId] = None
+    root_id: Optional[PydanticObjectId] = None
     # Reference to top-most ancestor department
     # Points to self if IS the root
     # Enables fast "all departments in division" queries
@@ -130,12 +132,12 @@ class Department(Document):
     # Example: "Product Development", "Customer Support", "Finance & Accounting"
     
     # ==================== LEADERSHIP ====================
-    head_employee_id: Optional[ObjectId] = None
+    head_employee_id: Optional[PydanticObjectId] = None
     # Department head/manager
     # Links to Employee._id
     # Example: "VP of Engineering", "HR Director"
     
-    deputy_head_employee_id: Optional[ObjectId] = None
+    deputy_head_employee_id: Optional[PydanticObjectId] = None
     # Second-in-command
     # Links to Employee._id
     # Optional
@@ -161,7 +163,7 @@ class Department(Document):
     # Example: "1000-2000"
     
     # ==================== LOCATION (OPTIONAL) ====================
-    primary_branch_id: Optional[ObjectId] = None
+    primary_branch_id: Optional[PydanticObjectId] = None
     # Main physical location for this department
     # Links to Branch._id
     # Example: Engineering might be primarily in Bangalore
@@ -234,42 +236,46 @@ class Department(Document):
     # ==================== SOFT DELETE ====================
     is_deleted: bool = Field(default=False)
     deleted_at: Optional[datetime] = None
-    deleted_by: Optional[ObjectId] = None
+    deleted_by: Optional[PydanticObjectId] = None
     
     # ==================== AUDIT ====================
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
-    created_by: Optional[ObjectId] = None
-    updated_by: Optional[ObjectId] = None
-    
+    created_by: Optional[PydanticObjectId] = None
+    updated_by: Optional[PydanticObjectId] = None
     # ==================== VALIDATORS ====================
-    @validator('code')
+    @field_validator("type")
+    @classmethod
     def normalize_code(cls, v):
         """Uppercase and trim"""
         return v.upper().strip()
     
-    @validator('email')
+    @field_validator("email")
+    @classmethod
     def normalize_email(cls, v):
         """Lowercase and trim"""
         if v:
             return v.lower().strip()
         return v
     
-    @validator('type')
+    @field_validator("type")
+    @classmethod
     def validate_type(cls, v):
         allowed = ['functional', 'division', 'team', 'project', 'cost_center']
         if v not in allowed:
             raise ValueError(f'type must be one of {allowed}')
         return v
     
-    @validator('status')
+    @field_validator("status")
+    @classmethod
     def validate_status(cls, v):
         allowed = ['active', 'inactive', 'dissolved', 'merged', 'planned']
         if v not in allowed:
             raise ValueError(f'status must be one of {allowed}')
         return v
     
-    @validator('materialized_path')
+    @field_validator("materialized_path")
+    @classmethod
     def validate_materialized_path(cls, v):
         if v is None:
             return v

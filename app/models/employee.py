@@ -6,6 +6,7 @@ from beanie import PydanticObjectId
 from enum import Enum
 from pydantic import BaseModel, EmailStr
 from bson import ObjectId
+from pydantic import field_validator
 import re
 
 
@@ -32,7 +33,7 @@ class MaritalStatus(str, Enum):
 
 class ReportingLine(BaseModel):
     """Reporting structure"""
-    manager_id: ObjectId
+    manager_id: PydanticObjectId
     # Which employee is the manager
     
     type: str
@@ -53,7 +54,7 @@ class Employee(Document):
     """
     
     # ==================== LINKING ====================
-    user_id: Optional[ObjectId] = None
+    user_id: Optional[PydanticObjectId] = None
     # Link to User account (1:1 usually)
     # Null if: Employee hasn't been given system access yet
     
@@ -134,11 +135,11 @@ class Employee(Document):
     # ]
     
     # ==================== ORGANIZATION PLACEMENT ====================
-    company_id: ObjectId = Field(...)
+    company_id: PydanticObjectId = Field(...)
     # Which company (required)
     # Links to Company._id
     
-    department_id: Optional[ObjectId] = None
+    department_id: Optional[PydanticObjectId] = None
     # Which department
     # Links to Department._id
     
@@ -147,7 +148,7 @@ class Employee(Document):
     # Example: "001.002.003"
     # Denormalized from Department
     
-    branch_id: Optional[ObjectId] = None
+    branch_id: Optional[PydanticObjectId] = None
     # Which branch/location
     # Links to Branch._id
     
@@ -156,11 +157,11 @@ class Employee(Document):
     # Example: "005.001"
     
     # ==================== JOB INFORMATION ====================
-    job_title_id: Optional[ObjectId] = None
+    job_title_id: Optional[PydanticObjectId] = None
     # Links to JobTitle master
     # Example: "Software Engineer", "HR Manager"
     
-    position_id: Optional[ObjectId] = None
+    position_id: Optional[PydanticObjectId] = None
     # Links to Position (specific seat/role)
     # Example: "Senior Backend Engineer - Payments Team"
     
@@ -301,11 +302,11 @@ class Employee(Document):
     # ]
     
     # ==================== ATTENDANCE & LEAVE ====================
-    work_schedule_id: Optional[ObjectId] = None
+    work_schedule_id: Optional[PydanticObjectId] = None
     # Links to WorkSchedule
     # Defines working hours, days
     
-    shift_id: Optional[ObjectId] = None
+    shift_id: Optional[PydanticObjectId] = None
     # Current shift (if shift-based work)
     
     annual_leave_balance: float = Field(default=0.0)
@@ -334,12 +335,12 @@ class Employee(Document):
     # ==================== AUDIT ====================
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
-    created_by: Optional[ObjectId] = None
-    updated_by: Optional[ObjectId] = None
+    created_by: Optional[PydanticObjectId] = None
+    updated_by: Optional[PydanticObjectId] = None
     
     is_deleted: bool = Field(default=False)
-    deleted_at: Optional[datetime] = None
-    deleted_by: Optional[ObjectId] = None
+    deleted_at: Optional[PydanticObjectId] = None
+    deleted_by: Optional[PydanticObjectId] = None
     
     # ==================== VALIDATORS ====================
     @validator('employee_code')

@@ -175,7 +175,11 @@ from beanie import Document
 from pydantic import Field, validator
 from datetime import datetime
 from typing import Optional
-from bson import ObjectId
+# from bson import ObjectId
+from beanie import PydanticObjectId
+from pydantic import field_validator
+
+
 import re
 
 class Company(Document):
@@ -213,7 +217,7 @@ class Company(Document):
     # When company was legally established
     
     # ==================== HIERARCHY ====================
-    parent_company_id: Optional[ObjectId] = None
+    parent_company_id:  Optional[PydanticObjectId] = None
     # Reference to immediate parent company
     # Null for top-level holding companies
     
@@ -228,7 +232,7 @@ class Company(Document):
     # Can have subsidiaries (True) or is leaf node (False)
     # Controls UI (folder vs file icon)
     
-    root_id: Optional[ObjectId] = None
+    root_id:  Optional[PydanticObjectId] = None
     # Reference to top-most ancestor
     # Points to self if IS the root
     # Enables fast "all in tree" queries
@@ -303,14 +307,14 @@ class Company(Document):
     deleted_at: Optional[datetime] = None
     # When record was soft-deleted
     
-    deleted_by: Optional[ObjectId] = None
+    deleted_by:  Optional[PydanticObjectId] = None
     # User who deleted the record
     
     # ==================== AUDIT ====================
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
-    created_by: Optional[ObjectId] = None
-    updated_by: Optional[ObjectId] = None
+    created_by:  Optional[PydanticObjectId] = None
+    updated_by:  Optional[PydanticObjectId] = None
     
     # ==================== METADATA (ADD THESE) ====================
     logo_url: Optional[str] = None
@@ -329,21 +333,25 @@ class Company(Document):
     # }
     
     # ==================== VALIDATORS ====================
-    @validator('type')
+    # @validator('type')
+    @field_validator("type")
+    @classmethod
     def validate_type(cls, v):
         allowed = ['holding_group', 'parent', 'subsidiary']
         if v not in allowed:
             raise ValueError(f'type must be one of {allowed}')
         return v
     
-    @validator('status')
+    @field_validator("status")
+    @classmethod
     def validate_status(cls, v):
         allowed = ['active', 'inactive', 'dissolved', 'merged', 'pending']
         if v not in allowed:
             raise ValueError(f'status must be one of {allowed}')
         return v
     
-    @validator('materialized_path')
+    @field_validator("materialized_path")
+    @classmethod
     def validate_materialized_path(cls, v):
         if v is None:
             return v
@@ -352,18 +360,21 @@ class Company(Document):
             raise ValueError('materialized_path must match pattern: 001.002.003')
         return v
     
-    @validator('code')
+    @field_validator("code")
+    @classmethod
     def normalize_code(cls, v):
         return v.upper().strip()
     
-    @validator('primary_email')
+    @field_validator("primary_email")
+    @classmethod
     def normalize_email(cls, v):
         if v:
             return v.lower().strip()
         return v
     
     # NEW: Validate fiscal year
-    @validator('fiscal_year_start')
+    @field_validator("fiscal_year_start")
+    @classmethod
     def validate_fiscal_year(cls, v):
         if v is not None and (v < 1 or v > 12):
             raise ValueError('fiscal_year_start must be between 1 and 12')

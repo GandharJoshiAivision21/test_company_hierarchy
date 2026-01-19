@@ -2,7 +2,9 @@ from beanie import Document
 from pydantic import Field, EmailStr, validator
 from datetime import datetime
 from typing import Optional
+from beanie import PydanticObjectId
 from bson import ObjectId
+from pydantic import field_validator
 
 class User(Document):
     """
@@ -32,7 +34,7 @@ class User(Document):
     # Example: "John Doe"
     
     # ==================== LINKING ====================
-    employee_id: Optional[ObjectId] = None
+    employee_id: Optional[PydanticObjectId] = None
     # Link to Employee record (1:1 in most cases)
     # Null if: System user, consultant, external auditor
     
@@ -106,19 +108,21 @@ class User(Document):
     # ==================== AUDIT ====================
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
-    created_by: Optional[ObjectId] = None  # Admin who created account
-    updated_by: Optional[ObjectId] = None
+    created_by: Optional[PydanticObjectId] = None  # Admin who created account
+    updated_by: Optional[PydanticObjectId] = None
     
     deleted_at: Optional[datetime] = None  # Soft delete
     is_deleted: bool = Field(default=False)
     
     # ==================== VALIDATORS ====================
-    @validator('email')
+    @field_validator("email")
+    @classmethod
     def normalize_email(cls, v):
         """Lowercase and trim email"""
         return v.lower().strip()
     
-    @validator('username')
+    @field_validator("username")
+    @classmethod
     def normalize_username(cls, v):
         """Lowercase and trim username"""
         if v:

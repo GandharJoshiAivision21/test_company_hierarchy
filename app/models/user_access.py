@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Optional, List
 from beanie import PydanticObjectId
 from bson import ObjectId
+from pydantic import field_validator
 import re
 
 class UserAccess(Document):
@@ -14,12 +15,12 @@ class UserAccess(Document):
     """
     
     # ==================== LINKING ====================
-    user_id: ObjectId = Field(...)
+    user_id: PydanticObjectId = Field(...)
     # Which user has this access
     # Links to User._id
     # Required
     
-    role_id: ObjectId = Field(...)
+    role_id: PydanticObjectId = Field(...)
     # Which role (permission template)
     # Links to Role._id
     # Required
@@ -84,7 +85,7 @@ class UserAccess(Document):
     # Allows: Temporary access (contractors, projects)
     
     # ==================== APPROVAL/AUDIT ====================
-    granted_by: Optional[ObjectId] = None
+    granted_by: Optional[PydanticObjectId] = None
     # Who gave this access?
     # Links to User._id of admin
     # For audit trail
@@ -96,7 +97,7 @@ class UserAccess(Document):
     # Why was this access granted?
     # Example: "Temporary access for Q4 audit"
     
-    revoked_by: Optional[ObjectId] = None
+    revoked_by: Optional[PydanticObjectId] = None
     # Who revoked this access?
     # Set when is_active = False
     
@@ -118,11 +119,12 @@ class UserAccess(Document):
     # ==================== AUDIT ====================
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
-    created_by: Optional[ObjectId] = None
-    updated_by: Optional[ObjectId] = None
+    created_by: Optional[PydanticObjectId] = None
+    updated_by: Optional[PydanticObjectId] = None
     
     # ==================== VALIDATORS ====================
-    @validator('scope_type')
+    @field_validator("scope_type")
+    @classmethod
     def validate_scope_type(cls, v):
         """Ensure valid scope type"""
         allowed = ['COMPANY', 'DEPARTMENT', 'BRANCH', 'GLOBAL']
@@ -130,7 +132,8 @@ class UserAccess(Document):
             raise ValueError(f'scope_type must be one of {allowed}')
         return v
     
-    @validator('path_limit')
+    @field_validator("path_limit")
+    @classmethod
     def validate_path_limit(cls, v):
         """Validate materialized path format"""
         if v == "*":  # Global scope

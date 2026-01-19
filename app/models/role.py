@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Optional, List
 from beanie import PydanticObjectId
 from bson import ObjectId
+from pydantic import field_validator
 import re
 
 class Role(Document):
@@ -42,7 +43,7 @@ class Role(Document):
     # 4 = Admin
     # 5 = Super Admin (highest)
     
-    inherits_from: Optional[ObjectId] = None
+    inherits_from: Optional[PydanticObjectId] = None
     # Optional: Role inheritance
     # If set, this role inherits all permissions from parent role
     # Example: "SENIOR_MANAGER" inherits from "MANAGER"
@@ -104,16 +105,18 @@ class Role(Document):
     # ==================== AUDIT ====================
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
-    created_by: Optional[ObjectId] = None
-    updated_by: Optional[ObjectId] = None
+    created_by: Optional[PydanticObjectId] = None
+    updated_by: Optional[PydanticObjectId] = None
     
     # ==================== VALIDATORS ====================
-    @validator('code')
+    @field_validator("code")
+    @classmethod
     def normalize_code(cls, v):
         """Uppercase and trim code"""
         return v.upper().strip()
     
-    @validator('name')
+    @field_validator("name")
+    @classmethod
     def normalize_name(cls, v):
         """Uppercase and trim name"""
         return v.upper().strip()
