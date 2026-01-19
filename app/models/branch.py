@@ -297,7 +297,7 @@ class Branch(Document):
             raise ValueError(f'type must be one of {allowed}')
         return v
     
-    @field_validator("satus")
+    @field_validator("status")
     @classmethod
     def validate_status(cls, v):
         allowed = ['active', 'inactive', 'under_construction', 'closed', 'planned']
