@@ -6,7 +6,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from config.database import Database
-from api.routes import auth, employees
+from api.routes import auth, employees, companies
+from fastapi.staticfiles import StaticFiles
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -22,6 +23,10 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan
 )
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
+app.include_router(companies.router, prefix="/api/companies", tags=["Companies"])
+
 
 # CORS
 app.add_middleware(
