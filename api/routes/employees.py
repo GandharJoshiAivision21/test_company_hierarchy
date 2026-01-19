@@ -34,63 +34,236 @@ async def check_permission(user_id: ObjectId, permission: str, resource_path: st
     
     return False
 
+# @router.get("/", response_model=List[dict])
+# async def list_employees(
+#     current_user = Depends(get_current_user),
+#     current_employee = Depends(get_current_employee)
+# ):
+#     """List employees based on user's access"""
+    
+#     # Get user's access grants
+#     access_grants = await UserAccess.find(
+#         UserAccess.user_id == current_user.id,
+#         UserAccess.is_active == True
+#     ).to_list()
+    
+#     # Check if user can view all employees
+#     can_view_all = False
+#     accessible_paths = []
+    
+#     for access in access_grants:
+#         role = await Role.get(access.role_id)
+#         if role and role.permissions.get("can_view_all_employees"):
+#             can_view_all = True
+        
+#         if access.path_limit == "*":
+#             can_view_all = True
+#         else:
+#             accessible_paths.append(access.path_limit)
+    
+#     # Build query
+#     if can_view_all:
+#         employees = await Employee.find(
+#             Employee.employment_status == "active",
+#             Employee.is_deleted == False
+#         ).to_list()
+#     elif accessible_paths:
+#         # Find employees in accessible departments
+#         employees = []
+#         for path in accessible_paths:
+#             dept_employees = await Employee.find(
+#                 Employee.department_path == path,
+#                 Employee.employment_status == "active",
+#                 Employee.is_deleted == False
+#             ).to_list()
+#             employees.extend(dept_employees)
+#     else:
+#         # Can only see self
+#         employees = [current_employee]
+    
+#     # Format response
+#     result = []
+#     for emp in employees:
+#         # Get department name
+#         dept_name = "N/A"
+#         if emp.department_id:
+#             dept = await Department.get(emp.department_id)
+#             if dept:
+#                 dept_name = dept.name
+        
+#         result.append({
+#             "id": str(emp.id),
+#             "employee_code": emp.employee_code,
+#             "display_name": emp.display_name,
+#             "work_email": emp.work_email,
+#             "department": dept_name,
+#             "department_path": emp.department_path,
+#             "employment_status": emp.employment_status,
+#             "joining_date": emp.joining_date.isoformat() if emp.joining_date else None
+#         })
+    
+#     return result
+
+# @router.get("/", response_model=List[dict])
+# async def list_employees(
+#     current_user = Depends(get_current_user),
+#     current_employee = Depends(get_current_employee)
+# ):
+#     """List employees based on user's access"""
+
+#     access_grants = await UserAccess.find(
+#         UserAccess.user_id == current_user.id,
+#         UserAccess.is_active == True
+#     ).to_list()
+
+#     can_view_all = False
+#     accessible_paths = set()  # use set to avoid duplicates
+
+#     for access in access_grants:
+#         role = await Role.get(access.role_id)
+#         if not role:
+#             continue
+
+#         # Role decides global access
+#         if role.permissions.get("can_view_all_employees"):
+#             can_view_all = True
+#             break
+
+#         # Otherwise, path-based access
+#         if access.path_limit and access.path_limit != "*":
+#             accessible_paths.add(access.path_limit)
+
+#     # -----------------------
+#     # Query logic
+#     # -----------------------
+
+#     if can_view_all:
+#         employees = await Employee.find(
+#             Employee.employment_status == "active",
+#             Employee.is_deleted == False
+#         ).to_list()
+
+#     elif accessible_paths:
+#         employees = []
+#         for path in accessible_paths:
+#             dept_employees = await Employee.find(
+#                 Employee.department_path == path,
+#                 Employee.employment_status == "active",
+#                 Employee.is_deleted == False
+#             ).to_list()
+#             employees.extend(dept_employees)
+
+#         # Deduplicate employees by ID
+#         unique = {}
+#         for emp in employees:
+#             unique[str(emp.id)] = emp
+#         employees = list(unique.values())
+
+#     else:
+#         # Only self
+#         employees = [current_employee]
+
+#     # -----------------------
+#     # Format response
+#     # -----------------------
+
+#     result = []
+
+#     for emp in employees:
+#         dept_name = "N/A"
+#         if emp.department_id:
+#             dept = await Department.get(emp.department_id)
+#             if dept:
+#                 dept_name = dept.name
+
+#         result.append({
+#             "id": str(emp.id),
+#             "employee_code": emp.employee_code,
+#             "display_name": emp.display_name,
+#             "work_email": emp.work_email,
+#             "department": dept_name,
+#             "department_path": emp.department_path,
+#             "employment_status": emp.employment_status,
+#             "joining_date": emp.joining_date.isoformat() if emp.joining_date else None
+#         })
+
+#     return result
+
+
 @router.get("/", response_model=List[dict])
 async def list_employees(
     current_user = Depends(get_current_user),
     current_employee = Depends(get_current_employee)
 ):
     """List employees based on user's access"""
-    
-    # Get user's access grants
+
     access_grants = await UserAccess.find(
         UserAccess.user_id == current_user.id,
         UserAccess.is_active == True
     ).to_list()
-    
-    # Check if user can view all employees
+
+    if not access_grants:
+        return [current_employee]
+
     can_view_all = False
+    can_view_department = False
+    can_view_own = False
+
     accessible_paths = []
-    
+
     for access in access_grants:
         role = await Role.get(access.role_id)
-        if role and role.permissions.get("can_view_all_employees"):
+        if not role:
+            continue
+
+        perms = role.permissions or {}
+
+        if perms.get("can_view_all_employees"):
             can_view_all = True
-        
-        if access.path_limit == "*":
-            can_view_all = True
-        else:
+
+        if perms.get("can_view_department_employees"):
+            can_view_department = True
+
+        if perms.get("can_view_own_data"):
+            can_view_own = True
+
+        if can_view_department:
             accessible_paths.append(access.path_limit)
-    
-    # Build query
+
+    # ---- Enforce permission rules ----
+
     if can_view_all:
         employees = await Employee.find(
             Employee.employment_status == "active",
             Employee.is_deleted == False
         ).to_list()
-    elif accessible_paths:
-        # Find employees in accessible departments
+
+    elif can_view_department and accessible_paths:
         employees = []
         for path in accessible_paths:
             dept_employees = await Employee.find(
-                Employee.department_path == path,
+                Employee.department_path.startswith(path),
                 Employee.employment_status == "active",
                 Employee.is_deleted == False
             ).to_list()
             employees.extend(dept_employees)
-    else:
-        # Can only see self
+
+    elif can_view_own:
         employees = [current_employee]
-    
-    # Format response
+
+    else:
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    # ---- Format response ----
+
     result = []
     for emp in employees:
-        # Get department name
         dept_name = "N/A"
         if emp.department_id:
             dept = await Department.get(emp.department_id)
             if dept:
                 dept_name = dept.name
-        
+
         result.append({
             "id": str(emp.id),
             "employee_code": emp.employee_code,
@@ -101,8 +274,10 @@ async def list_employees(
             "employment_status": emp.employment_status,
             "joining_date": emp.joining_date.isoformat() if emp.joining_date else None
         })
-    
+
     return result
+
+
 
 @router.get("/reporting-to-me", response_model=List[dict])
 async def get_my_reports(current_employee = Depends(get_current_employee)):
@@ -118,7 +293,7 @@ async def get_my_reports(current_employee = Depends(get_current_employee)):
     my_reports = []
     for emp in reports:
         for reporting_line in emp.reporting_lines:
-            if reporting_line.get("manager_id") == current_employee.id and reporting_line.get("is_primary"):
+            if reporting_line.manager_id == current_employee.id and reporting_line.is_primary:
                 # Get department
                 dept_name = "N/A"
                 if emp.department_id:
