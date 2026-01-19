@@ -5,7 +5,7 @@ from typing import Optional, List
 from beanie import PydanticObjectId
 from enum import Enum
 from pydantic import BaseModel, EmailStr
-from bson import ObjectId
+# from bson import ObjectId # Not needed with Beanie's PydanticObjectId in Pydantic v2
 from pydantic import field_validator
 import re
 

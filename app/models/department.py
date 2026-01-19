@@ -59,7 +59,7 @@ from beanie import Document
 from pydantic import Field, validator
 from datetime import datetime
 from typing import Optional, List
-from bson import ObjectId
+# from bson import ObjectId # Not needed with Beanie's PydanticObjectId in Pydantic v2
 from beanie import PydanticObjectId
 from pydantic import field_validator
 import re
@@ -198,7 +198,7 @@ class Department(Document):
     # Do hires need special approval?
     # Higher management approval required
     
-    approval_chain: List[ObjectId] = Field(default_factory=list)
+    approval_chain: List[PydanticObjectId] = Field(default_factory=list)
     # Escalation path for approvals
     # [immediate_manager_id, dept_head_id, vp_id, ...]
     # Used for: Leave approvals, expense approvals

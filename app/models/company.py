@@ -175,7 +175,7 @@ from beanie import Document
 from pydantic import Field, validator
 from datetime import datetime
 from typing import Optional
-# from bson import ObjectId
+# from bson import ObjectId # Not needed with Beanie's PydanticObjectId in Pydantic v2
 from beanie import PydanticObjectId
 from pydantic import field_validator
 

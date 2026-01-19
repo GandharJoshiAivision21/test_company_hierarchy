@@ -3,7 +3,7 @@ from pydantic import Field, EmailStr, validator
 from datetime import datetime
 from typing import Optional
 from beanie import PydanticObjectId
-from bson import ObjectId
+# from bson import ObjectId # Not needed with Beanie's PydanticObjectId in Pydantic v2
 from pydantic import field_validator
 
 class User(Document):
